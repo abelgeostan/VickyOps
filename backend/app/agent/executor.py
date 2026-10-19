@@ -155,6 +155,8 @@ class PlanExecutor:
                 current_step_states[idx]["log"] = tool_result.output
                 current_step_states[idx]["duration_ms"] = step_duration
                 accumulated_output.append(f"✓ {step.name}: {tool_result.output}")
+                operation.steps_json = json.dumps(current_step_states)
+                await db.commit()
                 
                 await self.broadcast("step_progress", {
                     "operation_id": operation.id,

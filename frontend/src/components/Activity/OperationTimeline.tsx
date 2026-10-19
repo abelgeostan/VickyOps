@@ -170,9 +170,17 @@ export const OperationTimeline: React.FC<OperationTimelineProps> = ({
 
                   <p className="text-xs text-slate-400">{step.description}</p>
 
+                  {/* Active running pulse text */}
+                  {isStepRunning && (
+                    <div className="flex items-center space-x-2 text-xs text-cyan-400 font-mono py-1.5 px-2 bg-cyan-950/40 border border-cyan-800/40 rounded-lg animate-pulse">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-cyan-400" />
+                      <span>Executing step: {step.name}...</span>
+                    </div>
+                  )}
+
                   {/* Step log output if completed or failed */}
                   {step.log && (
-                    <div className="mt-2 pt-2 border-t border-slate-800/80 font-mono text-[11px] text-slate-300 whitespace-pre-wrap bg-slate-950/70 p-2.5 rounded-lg overflow-x-auto max-h-40">
+                    <div className="mt-2 pt-2 border-t border-slate-800/80 font-mono text-[11px] text-slate-300 whitespace-pre-wrap bg-slate-950/70 p-2.5 rounded-lg overflow-x-auto max-h-48 border border-slate-800">
                       {step.log}
                     </div>
                   )}

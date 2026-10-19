@@ -89,20 +89,24 @@ class DevOpsPlanner:
                 ),
                 PlanStep(
                     step_index=3,
-                    name="Building and restarting containers",
-                    tool_name="service.deploy",
-                    parameters={
-                        "service_path": s_path,
-                        "branch": s_branch,
-                        "compose_file": s_compose,
-                        "health_url": s_health
-                    },
-                    description=f"Rebuild images and launch updated containers for {s_name}",
+                    name="Building Docker images",
+                    tool_name="docker.build" if is_git_service else "service.get_status",
+                    parameters={"service_path": s_path, "compose_file": s_compose} if is_git_service else {"service_path": s_path},
+                    description=f"Build and compile Docker images for {s_name}",
                     is_dangerous=True,
                     requires_approval=True
                 ),
                 PlanStep(
                     step_index=4,
+                    name="Restarting services",
+                    tool_name="docker.deploy" if is_git_service else "service.restart",
+                    parameters={"service_path": s_path, "compose_file": s_compose},
+                    description=f"Recreate and start updated containers for {s_name}",
+                    is_dangerous=True,
+                    requires_approval=True
+                ),
+                PlanStep(
+                    step_index=5,
                     name="Running health checks",
                     tool_name="service.health_check",
                     parameters={"health_url": s_health, "service_path": s_path},
@@ -118,7 +122,7 @@ class DevOpsPlanner:
                 steps=steps,
                 requires_approval=True,
                 approval_prompt=f"⚠️ This operation will deploy the latest update to {s_name} and briefly recreate its containers. Proceed with deployment?",
-                explanation=f"Planned 5-step standardized deployment workflow for {s_name}."
+                explanation=f"Planned 6-step standardized deployment workflow for {s_name}."
             )
 
         # 2. Restart service / container

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.database import get_db
+from app.database import get_db, AsyncSessionLocal
 from app.models.service import ServiceModel
 from app.models.operation import OperationModel
 from app.schemas.service import ServiceResponse, ServiceCreate, ServiceUpdate, ServiceActionRequest
@@ -207,15 +207,19 @@ async def trigger_service_action(
     await db.commit()
     await db.refresh(op)
 
-    # Launch execution in background task if it does not require approval or auto-approves safe
-    if not plan.requires_approval:
-        async def run_op():
-            async with get_db() as local_db:
-                # reload op
-                local_op = await local_db.get(OperationModel, op_id)
-                if local_op:
-                    await executor.execute_plan(local_db, local_op, plan)
-        background_tasks.add_task(run_op)
+    # Launch execution in background task (dashboard actions are authorized by the user)
+    is_dashboard_click = (op.initiator == "dashboard")
+    async def run_op():
+        async with AsyncSessionLocal() as local_db:
+            local_op = await local_db.get(OperationModel, op_id)
+            if local_op:
+                await executor.execute_plan(
+                    local_db,
+                    local_op,
+                    plan,
+                    approved_by_user=is_dashboard_click
+                )
+    background_tasks.add_task(run_op)
 
     return OperationResponse(
         id=op.id,

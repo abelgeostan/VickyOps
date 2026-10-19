@@ -219,3 +219,58 @@ class DockerStartTool(BaseTool):
             exit_code=code,
             duration_ms=duration
         )
+
+class DockerBuildTool(BaseTool):
+    name = "docker.build"
+    description = "Build Docker images using docker compose build or docker build."
+    category = "docker"
+    is_dangerous = True
+    requires_approval = True
+    parameters_schema = {
+        "service_path": {"type": "string", "required": True},
+        "compose_file": {"type": "string", "default": "docker-compose.yml"}
+    }
+
+    async def execute(self, service_path: str, compose_file: str = "docker-compose.yml", **kwargs) -> ToolResult:
+        start_time = time.time()
+        cmd = f'cd "{service_path}" && docker compose -f "{compose_file}" build 2>&1'
+        code, out, err = await ssh_manager.execute_command(cmd, timeout=600)
+        duration = (time.time() - start_time) * 1000
+
+        success = (code == 0)
+        return ToolResult(
+            tool_name=self.name,
+            success=success,
+            output="Build completed successfully.\n" + out.strip()[-500:] if success else "",
+            error=err or out.strip() if not success else None,
+            exit_code=code,
+            duration_ms=duration
+        )
+
+class DockerDeployTool(BaseTool):
+    name = "docker.deploy"
+    description = "Deploy and restart containers using docker compose up -d."
+    category = "docker"
+    is_dangerous = True
+    requires_approval = True
+    parameters_schema = {
+        "service_path": {"type": "string", "required": True},
+        "compose_file": {"type": "string", "default": "docker-compose.yml"}
+    }
+
+    async def execute(self, service_path: str, compose_file: str = "docker-compose.yml", **kwargs) -> ToolResult:
+        start_time = time.time()
+        cmd = f'cd "{service_path}" && docker compose -f "{compose_file}" up -d --remove-orphans 2>&1'
+        code, out, err = await ssh_manager.execute_command(cmd, timeout=300)
+        duration = (time.time() - start_time) * 1000
+
+        success = (code == 0)
+        return ToolResult(
+            tool_name=self.name,
+            success=success,
+            output="Containers started and deployed successfully.\n" + out.strip() if success else "",
+            error=err or out.strip() if not success else None,
+            exit_code=code,
+            duration_ms=duration
+        )
+

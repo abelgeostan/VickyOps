@@ -82,7 +82,6 @@ export const App: React.FC = () => {
         const updated = await fetchOperation(data.operation_id);
         setActiveOperation(updated);
       }
-      // Refresh operations list
       fetchOperations().then(setOperations);
     });
 
@@ -107,7 +106,28 @@ export const App: React.FC = () => {
       unsubOp();
       unsubApprove();
     };
-  }, [activeOperation]);
+  }, [activeOperation?.id]);
+
+  // Fast polling fallback while active operation is running or pending
+  useEffect(() => {
+    if (!activeOperation || (activeOperation.status !== 'running' && activeOperation.status !== 'pending')) {
+      return;
+    }
+    const pollTimer = setInterval(async () => {
+      try {
+        const updated = await fetchOperation(activeOperation.id);
+        setActiveOperation(updated);
+        if (updated.status === 'completed' || updated.status === 'failed') {
+          fetchServices().then(setServices);
+          fetchOperations().then(setOperations);
+        }
+      } catch (e) {
+        console.error('Polling op error', e);
+      }
+    }, 1500);
+
+    return () => clearInterval(pollTimer);
+  }, [activeOperation?.id, activeOperation?.status]);
 
   // Handler for dashboard actions: "Deploy Update", "Restart", etc.
   const handleServiceAction = async (serviceId: string, action: string) => {

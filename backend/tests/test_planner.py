@@ -15,12 +15,13 @@ async def test_planner_update_vickyai():
     plan = await planner.create_plan("Update VickyAI", services)
     assert plan.service_id == "vickyai"
     assert plan.requires_approval is True
-    assert len(plan.steps) == 5
+    assert len(plan.steps) == 6
     step_tools = [s.tool_name for s in plan.steps]
     assert "git.status" in step_tools
     assert "git.check_updates" in step_tools
     assert "git.pull" in step_tools
-    assert "service.deploy" in step_tools
+    assert "docker.build" in step_tools
+    assert "docker.deploy" in step_tools
     assert "service.health_check" in step_tools
 
 @pytest.mark.asyncio

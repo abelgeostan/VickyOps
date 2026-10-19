@@ -9,6 +9,8 @@ from app.tools.docker_tools import (
     DockerRestartTool,
     DockerStopTool,
     DockerStartTool,
+    DockerBuildTool,
+    DockerDeployTool,
 )
 from app.tools.git_tools import GitStatusTool, GitCheckUpdatesTool, GitPullTool
 from app.tools.service_tools import (
@@ -50,6 +52,8 @@ class ToolRegistry:
         self.register(DockerRestartTool())
         self.register(DockerStopTool())
         self.register(DockerStartTool())
+        self.register(DockerBuildTool())
+        self.register(DockerDeployTool())
         # Git
         self.register(GitStatusTool())
         self.register(GitCheckUpdatesTool())
