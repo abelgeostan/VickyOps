@@ -70,9 +70,15 @@ class ServiceHealthCheckTool(BaseTool):
     async def execute(self, health_url: Optional[str] = None, service_path: Optional[str] = None, **kwargs) -> ToolResult:
         start_time = time.time()
         
-        # If health_url is provided, curl it via SSH on localhost
+        # If health_url is provided, curl it
         if health_url:
-            cmd = f"curl -s -o /dev/null -w '%{{http_code}}' -m 8 '{health_url}'"
+            # If executing inside container with docker socket, localhost points to the container.
+            # Convert localhost / 127.0.0.1 to host.docker.internal so container reaches the host services.
+            target_url = health_url
+            if ssh_manager.has_docker_sock:
+                target_url = target_url.replace("localhost", "host.docker.internal").replace("127.0.0.1", "host.docker.internal")
+                
+            cmd = f"curl -s -o /dev/null -w '%{{http_code}}' -m 8 '{target_url}'"
             code, out, err = await ssh_manager.execute_command(cmd)
             duration = (time.time() - start_time) * 1000
             
