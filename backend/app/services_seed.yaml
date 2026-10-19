@@ -6,7 +6,7 @@ services:
     branch: "main"
     path: "/home/stan/VickyAI"
     compose_file: "docker-compose.yml"
-    health_url: "http://localhost:8000/api/health"
+    health_url: "http://localhost:3080/api/health"
     deployment_type: "git_compose"
     requires_approval: true
 
