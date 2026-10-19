@@ -2,9 +2,12 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system dependencies including OpenSSH client for remote server connectivity
+# Install system dependencies: Docker CLI, Git, OpenSSH, procps, curl
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
+    docker.io \
+    git \
+    procps \
     curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*

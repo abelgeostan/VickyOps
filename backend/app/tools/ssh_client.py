@@ -1,5 +1,6 @@
 import asyncio
 import os
+import subprocess
 import logging
 import paramiko
 from typing import Tuple, Optional
@@ -17,7 +18,8 @@ class SSHManager:
         self.password = settings.SSH_PASSWORD
         self.key_path = settings.SSH_KEY_PATH
         self.timeout = settings.SSH_TIMEOUT
-        self._client: Optional[paramiko.SSHClient] = None
+        self.has_docker_sock = os.path.exists("/var/run/docker.sock")
+        self.host_proc = os.getenv("HOST_PROC", "")
 
     @classmethod
     def get_instance(cls) -> "SSHManager":
@@ -25,7 +27,28 @@ class SSHManager:
             cls._instance = SSHManager()
         return cls._instance
 
-    def _connect(self) -> paramiko.SSHClient:
+    def _execute_local(self, command: str, timeout: int = 45) -> Tuple[int, str, str]:
+        """Execute command locally inside the container accessing /var/run/docker.sock."""
+        # If /host/proc is mounted, adjust /proc paths in command
+        cmd = command
+        if self.host_proc and os.path.exists(self.host_proc):
+            cmd = cmd.replace("/proc/loadavg", f"{self.host_proc}/loadavg")
+            cmd = cmd.replace("/proc/net/dev", f"{self.host_proc}/net/dev")
+
+        try:
+            res = subprocess.run(
+                ["bash", "-c", cmd],
+                capture_output=True,
+                text=True,
+                timeout=timeout
+            )
+            return res.returncode, res.stdout, res.stderr
+        except subprocess.TimeoutExpired:
+            return -1, "", "Command timed out"
+        except Exception as e:
+            return -1, "", str(e)
+
+    def _connect_ssh(self) -> paramiko.SSHClient:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         
@@ -56,17 +79,34 @@ class SSHManager:
         return client
 
     def execute_command_sync(self, command: str, timeout: int = 45) -> Tuple[int, str, str]:
-        """Synchronously execute a command on the remote server via SSH."""
+        """
+        Execute command on the server.
+        If running inside a container on the host with /var/run/docker.sock mounted,
+        it uses direct local execution for instant, zero-overhead response.
+        Otherwise connects via SSH with password / private key.
+        """
+        # If running on the host with docker socket mounted, prefer direct local execution
+        if self.has_docker_sock:
+            code, out, err = self._execute_local(command, timeout)
+            if code == 0:
+                return code, out, err
+            # If local command didn't succeed, fall through to try SSH
+            logger.debug(f"Local command returned {code}, trying SSH: {err}")
+
+        # SSH execution
         client = None
         try:
-            client = self._connect()
+            client = self._connect_ssh()
             stdin, stdout, stderr = client.exec_command(command, timeout=timeout)
             out = stdout.read().decode("utf-8", errors="replace")
             err = stderr.read().decode("utf-8", errors="replace")
             exit_code = stdout.channel.recv_exit_status()
             return exit_code, out, err
         except Exception as e:
-            logger.error(f"SSH execution error: {e}")
+            logger.warning(f"SSH execution error: {e}")
+            # If SSH fails and we haven't tried local yet, try local as fallback
+            if not self.has_docker_sock:
+                return self._execute_local(command, timeout)
             return -1, "", str(e)
         finally:
             if client:
@@ -76,7 +116,7 @@ class SSHManager:
                     pass
 
     async def execute_command(self, command: str, timeout: int = 45) -> Tuple[int, str, str]:
-        """Run SSH command asynchronously in a threadpool executor."""
+        """Run command asynchronously in a threadpool executor."""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self.execute_command_sync, command, timeout)
 

@@ -31,14 +31,19 @@ services:
       SECRET_KEY: ${SECRET_KEY:-vickyops_jwt_secret_production_key_change_me}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://192.168.1.24:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:latest}
       SSH_HOST: ${SSH_HOST:-192.168.1.123}
       SSH_PORT: ${SSH_PORT:-22}
       SSH_USER: ${SSH_USER:-vickyops}
       SSH_PASSWORD: ${SSH_PASSWORD:-vickythegoat}
       SSH_KEY_PATH: /root/.ssh/id_ed25519
+      HOST_PROC: /host/proc
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/stan:/home/stan
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
       - ~/.ssh:/root/.ssh:ro
       - backup_data:/var/backups/vickyops
     networks:

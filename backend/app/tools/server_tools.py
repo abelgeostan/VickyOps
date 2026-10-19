@@ -71,7 +71,7 @@ class ServerGetResourcesTool(BaseTool):
         cmd = """
         free -b | grep -E '^Mem:|^Swap:'
         echo '---DF---'
-        df -B1 / | tail -n 1
+        df -B1 /home/stan 2>/dev/null | tail -n 1 || df -B1 / | tail -n 1
         echo '---LOAD---'
         cat /proc/loadavg
         echo '---NET---'
