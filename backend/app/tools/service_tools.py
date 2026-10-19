@@ -72,7 +72,7 @@ class ServiceHealthCheckTool(BaseTool):
         
         # If health_url is provided, curl it via SSH on localhost
         if health_url:
-            cmd = f'curl -s -o /dev/null -w "%{{http_code}}" -m 5 "{health_url}" 2>/dev/null || echo "failed"'
+            cmd = f"curl -s -o /dev/null -w '%{{http_code}}' -m 8 '{health_url}'"
             code, out, err = await ssh_manager.execute_command(cmd)
             duration = (time.time() - start_time) * 1000
             
