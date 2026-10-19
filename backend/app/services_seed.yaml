@@ -17,7 +17,7 @@ services:
     branch: "main"
     path: "/home/stan/stancloud"
     compose_file: "docker-compose.yml"
-    health_url: "http://localhost:8088/api/health"
+    health_url: "http://localhost:8088/"
     deployment_type: "image_compose"
     requires_approval: true
 
