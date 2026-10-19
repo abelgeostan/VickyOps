@@ -41,6 +41,8 @@ services:
       HOST_PROC: /host/proc
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+      - /usr/bin/docker-compose:/usr/bin/docker-compose:ro
       - /home/stan:/home/stan
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro

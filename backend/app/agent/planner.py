@@ -46,6 +46,23 @@ class DevOpsPlanner:
         Ollama (if available) or rule-based DevOps intent matching.
         """
         req_lower = user_request.lower().strip()
+        clean_text = re.sub(r'[^\w\s]', '', req_lower)
+
+        # 0. Conversational queries & Questions that don't trigger server operations
+        greetings = ["hi", "hello", "hey", "who are you", "who is this", "what can you do", "help", "what is this", "tell me about yourself", "how are you"]
+        if any(clean_text == g or clean_text.startswith(g + " ") for g in greetings) or clean_text in ["who are you", "who is this", "who are u"]:
+            explanation = (
+                "I am **VickyOps**, your self-hosted AI DevOps and server-management assistant for Ubuntu (`vicky`). "
+                "I help you monitor hardware health, check container states, inspect logs, run backups, and execute standardized deployments."
+            )
+            return ExecutionPlan(
+                title="VickyOps Assistant",
+                user_request=user_request,
+                steps=[],
+                requires_approval=False,
+                explanation=explanation
+            )
+
         matched_service = self._match_service(req_lower, services)
         s_id = matched_service.get("id") if matched_service else None
         s_name = matched_service.get("name") if matched_service else None
@@ -271,33 +288,82 @@ class DevOpsPlanner:
                 explanation="Scanning configured git-backed services for available remote updates."
             )
 
-        # Default fallback: General server and container status inspection
-        steps = [
-            PlanStep(
-                step_index=0,
-                name="Checking server status",
-                tool_name="server.get_status",
-                parameters={},
-                description="Check system uptime and core health",
-                is_dangerous=False,
-                requires_approval=False
-            ),
-            PlanStep(
-                step_index=1,
-                name="Listing active containers",
-                tool_name="docker.list_containers",
-                parameters={"all": True},
-                description="List all running docker workloads",
-                is_dangerous=False,
-                requires_approval=False
+        # 9. Service inventory or list questions
+        if any(w in req_lower for w in ["what services", "list services", "show services", "which services", "available services"]):
+            names = ", ".join([s.get("name", "") for s in services if s.get("name")])
+            return ExecutionPlan(
+                title="Configured Services",
+                user_request=user_request,
+                steps=[],
+                requires_approval=False,
+                explanation=f"Here are the services currently configured on Ubuntu (`vicky`):\n\n**{names}**\n\nYou can ask me to check their health, inspect resource usage, deploy updates, or create backups."
             )
-        ]
+
+        # 10. General conversational questions (why, what, how, who, explain)
+        question_words = ["why", "what", "who", "how", "when", "tell me", "explain", "can you", "could you"]
+        if any(req_lower.startswith(q) for q in question_words) or req_lower.endswith("?"):
+            return ExecutionPlan(
+                title="VickyOps Assistant",
+                user_request=user_request,
+                steps=[],
+                requires_approval=False,
+                explanation=(
+                    f"I received your question: *\"{user_request}\"*\n\n"
+                    "I am **VickyOps**, your DevOps and server copilot. Here are operations you can run:\n"
+                    "- **\"Update VickyAI\"** - Pulls latest Git commits, builds images, and restarts containers\n"
+                    "- **\"Is StanDrive healthy?\"** - Verifies live health endpoint HTTP status\n"
+                    "- **\"Show me what's using the most RAM\"** - Queries real-time memory and CPU telemetry\n"
+                    "- **\"Backup VickyAI\"** - Creates a timestamped archive of the service directory\n"
+                    "- **\"Check Cloudflare tunnels\"** - Verifies tunnel connectivity\n"
+                    "- **\"Are any of my services outdated?\"** - Checks remote Git branches for new commits"
+                )
+            )
+
+        # 11. Explicit server diagnostic request
+        if any(w in req_lower for w in ["diagnose", "diagnostic", "check server", "server status", "system status"]):
+            steps = [
+                PlanStep(
+                    step_index=0,
+                    name="Checking server status",
+                    tool_name="server.get_status",
+                    parameters={},
+                    description="Check system uptime and core health",
+                    is_dangerous=False,
+                    requires_approval=False
+                ),
+                PlanStep(
+                    step_index=1,
+                    name="Listing active containers",
+                    tool_name="docker.list_containers",
+                    parameters={"all": True},
+                    description="List all running docker workloads",
+                    is_dangerous=False,
+                    requires_approval=False
+                )
+            ]
+            return ExecutionPlan(
+                title="Server Diagnostic",
+                user_request=user_request,
+                steps=steps,
+                requires_approval=False,
+                explanation="Running general diagnostic on server and Docker containers."
+            )
+
+        # Default fallback: Inform user and suggest actions
         return ExecutionPlan(
-            title="Server Diagnostic",
+            title="VickyOps Assistant",
             user_request=user_request,
-            steps=steps,
+            steps=[],
             requires_approval=False,
-            explanation="Running general diagnostic on server and Docker containers."
+            explanation=(
+                f"I understood: *\"{user_request}\"*\n\n"
+                "I can execute DevOps operations on server `vicky`. Try asking:\n"
+                "- *\"Is VickyAI healthy?\"*\n"
+                "- *\"Show RAM usage\"*\n"
+                "- *\"Update VickyAI\"*\n"
+                "- *\"Check updates for all services\"*\n"
+                "- *\"Diagnose server\"*"
+            )
         )
 
 planner = DevOpsPlanner()

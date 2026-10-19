@@ -36,6 +36,17 @@ async def handle_chat_message(
     # Generate plan
     plan = await planner.create_plan(chat_req.message, service_dicts)
 
+    # If conversational message without steps, reply directly
+    if not plan.steps and plan.explanation:
+        return ChatMessageResponse(
+            reply=plan.explanation,
+            operation_id=None,
+            requires_approval=False,
+            approval_prompt=None,
+            plan_title=plan.title,
+            steps=[]
+        )
+
     op_id = f"op_{uuid.uuid4().hex[:10]}"
     op = OperationModel(
         id=op_id,

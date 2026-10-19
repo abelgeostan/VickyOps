@@ -54,11 +54,17 @@ class SSHManager:
         
         expanded_key = os.path.expanduser(self.key_path) if self.key_path else None
         
+        # Resolve hostname: inside a docker container, connecting to localhost or 127.0.1.1 fails.
+        # Use host.docker.internal or 192.168.1.123 when inside container
+        target_host = self.host
+        if self.has_docker_sock and (target_host in ["localhost", "127.0.0.1", "127.0.1.1", "vicky"]):
+            target_host = "host.docker.internal"
+
         # Try key first if it exists
         if expanded_key and os.path.exists(expanded_key):
             try:
                 client.connect(
-                    hostname=self.host,
+                    hostname=target_host,
                     port=self.port,
                     username=self.user,
                     key_filename=expanded_key,
@@ -70,7 +76,7 @@ class SSHManager:
         
         # Fallback to password
         client.connect(
-            hostname=self.host,
+            hostname=target_host,
             port=self.port,
             username=self.user,
             password=self.password,
