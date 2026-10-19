@@ -49,7 +49,8 @@ async def seed_data():
                     s_id = s.get("id")
                     s_stmt = select(ServiceModel).where(ServiceModel.id == s_id)
                     s_res = await session.execute(s_stmt)
-                    if not s_res.scalar_one_or_none():
+                    existing_s = s_res.scalar_one_or_none()
+                    if not existing_s:
                         new_s = ServiceModel(
                             id=s_id,
                             name=s.get("name"),
@@ -65,6 +66,12 @@ async def seed_data():
                         )
                         session.add(new_s)
                         logger.info(f"Seeded service: {s.get('name')}")
+                    else:
+                        existing_s.health_url = s.get("health_url")
+                        existing_s.compose_file = s.get("compose_file", "docker-compose.yml")
+                        existing_s.branch = s.get("branch", "main")
+                        existing_s.repository = s.get("repository")
+                        existing_s.deployment_type = s.get("deployment_type", existing_s.deployment_type)
         await session.commit()
 
 @asynccontextmanager
