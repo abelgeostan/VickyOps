@@ -1,0 +1,77 @@
+services:
+  - id: "vickyai"
+    name: "VickyAI"
+    description: "AI Assistant Full-Stack Application (FastAPI, React, Nginx, PostgreSQL)"
+    repository: "https://github.com/abelgeostan/VickyAI.git"
+    branch: "main"
+    path: "/home/stan/VickyAI"
+    compose_file: "docker-compose.yml"
+    health_url: "http://localhost:8000/api/health"
+    deployment_type: "git_compose"
+    requires_approval: true
+
+  - id: "standrive"
+    name: "StanDrive"
+    description: "Cloud Storage & Drive Service (Spring Boot backend, React frontend, PostgreSQL)"
+    repository: "https://github.com/abelgeostan/stancloud"
+    branch: "main"
+    path: "/home/stan/stancloud"
+    compose_file: "docker-compose.yml"
+    health_url: "http://localhost:8088/api/health"
+    deployment_type: "image_compose"
+    requires_approval: true
+
+  - id: "nextcloud"
+    name: "Nextcloud"
+    description: "Self-hosted productivity platform and personal cloud (Nextcloud + MariaDB)"
+    repository: ""
+    branch: "main"
+    path: "/home/stan/nextcloud"
+    compose_file: "docker-compose.yml"
+    health_url: "http://localhost:8080/status.php"
+    deployment_type: "image_compose"
+    requires_approval: true
+
+  - id: "n8n"
+    name: "n8n Automation"
+    description: "Workflow Automation with Cloudflare Tunnel (https://n8n.brethren.in/)"
+    repository: ""
+    branch: "main"
+    path: "/home/stan/n8n"
+    compose_file: "docker-compose.yml"
+    health_url: "https://n8n.brethren.in/healthz"
+    deployment_type: "image_compose"
+    requires_approval: true
+
+  - id: "textile-pos"
+    name: "Textile POS"
+    description: "Point of Sale & Inventory Management for textiles (FastAPI + React)"
+    repository: ""
+    branch: "main"
+    path: "/home/stan/textile-pos"
+    compose_file: "docker-compose.yml"
+    health_url: "http://localhost:18732/health"
+    deployment_type: "source_compose"
+    requires_approval: true
+
+  - id: "homeassistant"
+    name: "Home Assistant"
+    description: "Smart Home Automation Platform"
+    repository: ""
+    branch: "main"
+    path: "/home/stan/homeassistant"
+    compose_file: "docker-compose.yml"
+    health_url: "http://localhost:8123"
+    deployment_type: "image_compose"
+    requires_approval: true
+
+  - id: "minecraft"
+    name: "Minecraft Server"
+    description: "PaperMC 1.21.8 Dedicated Minecraft Game Server"
+    repository: ""
+    branch: "main"
+    path: "/home/stan/minecraft"
+    compose_file: "docker-compose.yml"
+    health_url: ""
+    deployment_type: "image_compose"
+    requires_approval: true

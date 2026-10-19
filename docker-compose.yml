@@ -1,0 +1,70 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: vickyops_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vickyops}
+      POSTGRES_USER: ${POSTGRES_USER:-vickyops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vickyops_secure_pass_2026}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vickyops} -d ${POSTGRES_DB:-vickyops}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vickyops-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vickyops_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-vickyops}:${POSTGRES_PASSWORD:-vickyops_secure_pass_2026}@db:5432/${POSTGRES_DB:-vickyops}
+      SECRET_KEY: ${SECRET_KEY:-vickyops_jwt_secret_production_key_change_me}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:latest}
+      SSH_HOST: ${SSH_HOST:-192.168.1.123}
+      SSH_PORT: ${SSH_PORT:-22}
+      SSH_USER: ${SSH_USER:-vickyops}
+      SSH_PASSWORD: ${SSH_PASSWORD:-vickythegoat}
+      SSH_KEY_PATH: /root/.ssh/id_ed25519
+    volumes:
+      - ~/.ssh:/root/.ssh:ro
+      - backup_data:/var/backups/vickyops
+    networks:
+      - vickyops-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vickyops_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${PORT:-3050}:80"
+    networks:
+      - vickyops-network
+
+networks:
+  vickyops-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local
+  backup_data:
+    driver: local
